@@ -160,97 +160,76 @@ func (m model) handleWelcomeInput(key string) (tea.Model, tea.Cmd) {
 func (m model) handleComponentSelectionInput(key string) (tea.Model, tea.Cmd) {
 	lowerKey := strings.ToLower(key)
 
-	if key == "enter" && m.input != "" {
-		if lowerKey == "c" {
-			m.componentType = ComponentCapacitor
-			m.screen = screenTypeSelection
-			m.input = ""
-			m.err = nil
-		} else if lowerKey == "r" {
-			m.componentType = ComponentResistor
-			m.screen = screenBandCountSelection
-			m.input = ""
-			m.err = nil
-		} else {
-			m.err = fmt.Errorf("invalid selection: please enter C for Capacitor or R for Resistor")
-		}
-	} else if key == "backspace" || key == "delete" {
-		if len(m.input) > 0 {
-			m.input = m.input[:len(m.input)-1]
-		}
-	} else if len(key) == 1 {
-		m.input += key
+	// Accept single key press without Enter
+	if lowerKey == "c" {
+		m.componentType = ComponentCapacitor
+		m.screen = screenTypeSelection
+		m.input = ""
+		m.err = nil
+	} else if lowerKey == "r" {
+		m.componentType = ComponentResistor
+		m.screen = screenBandCountSelection
+		m.input = ""
+		m.err = nil
+	} else if key == "q" {
+		m.quitting = true
+		return m, tea.Quit
 	}
+
 	return m, nil
 }
 
 func (m model) handleTypeSelectionInput(key string) (tea.Model, tea.Cmd) {
-	if key == "enter" && m.input != "" {
-		capType, valid := ParseCapacitorType(m.input)
-		if valid {
-			m.capacitorReading.CapType = capType
-			m.screen = screenBandCountSelection
-			m.input = ""
-			m.err = nil
-		} else {
-			m.err = fmt.Errorf("invalid type: please enter J, K, L, M, or N")
-		}
-	} else if key == "backspace" || key == "delete" {
-		if len(m.input) > 0 {
-			m.input = m.input[:len(m.input)-1]
-		}
-	} else if len(key) == 1 {
-		m.input += key
+	// Accept single key press without Enter
+	capType, valid := ParseCapacitorType(key)
+	if valid {
+		m.capacitorReading.CapType = capType
+		m.screen = screenBandCountSelection
+		m.input = ""
+		m.err = nil
+	} else if strings.ToLower(key) == "q" {
+		m.quitting = true
+		return m, tea.Quit
 	}
 	return m, nil
 }
 
 func (m model) handleBandCountInput(key string) (tea.Model, tea.Cmd) {
-	if key == "enter" && m.input != "" {
+	// Accept single key press without Enter
+	if key == "3" || key == "4" || key == "5" || key == "6" {
 		bandCount := 0
-		if m.input == "3" || m.input == "4" || m.input == "5" || m.input == "6" {
-			if m.input == "3" {
-				bandCount = 3
-			} else if m.input == "4" {
-				bandCount = 4
-			} else if m.input == "5" {
-				bandCount = 5
-			} else if m.input == "6" {
-				bandCount = 6
-			}
-
-			// Validate band count based on component type
-			if m.componentType == ComponentCapacitor {
-				if bandCount < 3 || bandCount > 5 {
-					m.err = fmt.Errorf("invalid band count for capacitor: please enter 3, 4, or 5")
-					return m, nil
-				}
-				m.capacitorReading.BandCount = bandCount
-			} else if m.componentType == ComponentResistor {
-				if bandCount < 4 || bandCount > 6 {
-					m.err = fmt.Errorf("invalid band count for resistor: please enter 4, 5, or 6")
-					return m, nil
-				}
-				m.resistorReading.BandCount = bandCount
-			}
-
-			m.screen = screenBandInput
-			m.currentBand = 1
-			m.input = ""
-			m.err = nil
-		} else {
-			if m.componentType == ComponentCapacitor {
-				m.err = fmt.Errorf("invalid band count: please enter 3, 4, or 5")
-			} else {
-				m.err = fmt.Errorf("invalid band count: please enter 4, 5, or 6")
-			}
+		if key == "3" {
+			bandCount = 3
+		} else if key == "4" {
+			bandCount = 4
+		} else if key == "5" {
+			bandCount = 5
+		} else if key == "6" {
+			bandCount = 6
 		}
-	} else if key == "backspace" || key == "delete" {
-		if len(m.input) > 0 {
-			m.input = m.input[:len(m.input)-1]
+
+		// Validate band count based on component type
+		if m.componentType == ComponentCapacitor {
+			if bandCount < 3 || bandCount > 5 {
+				m.err = fmt.Errorf("invalid band count for capacitor: press 3, 4, or 5")
+				return m, nil
+			}
+			m.capacitorReading.BandCount = bandCount
+		} else if m.componentType == ComponentResistor {
+			if bandCount < 4 || bandCount > 6 {
+				m.err = fmt.Errorf("invalid band count for resistor: press 4, 5, or 6")
+				return m, nil
+			}
+			m.resistorReading.BandCount = bandCount
 		}
-	} else if len(key) == 1 {
-		m.input += key
+
+		m.screen = screenBandInput
+		m.currentBand = 1
+		m.input = ""
+		m.err = nil
+	} else if strings.ToLower(key) == "q" {
+		m.quitting = true
+		return m, tea.Quit
 	}
 	return m, nil
 }
@@ -505,65 +484,56 @@ func (m model) handleResultsInput(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m model) handleEditInput(key string) (tea.Model, tea.Cmd) {
-	if key == "enter" && m.input != "" {
-		var maxBand int
-		if m.componentType == ComponentCapacitor {
-			maxBand = m.capacitorReading.BandCount
-		} else {
-			maxBand = m.resistorReading.BandCount
-		}
+	// Accept single key press without Enter
+	var maxBand int
+	if m.componentType == ComponentCapacitor {
+		maxBand = m.capacitorReading.BandCount
+	} else {
+		maxBand = m.resistorReading.BandCount
+	}
 
-		// Parse band number to edit
-		if m.input == "1" {
-			m.editBandIndex = 1
-			m.currentBand = 1
-			m.screen = screenBandInput
-			m.input = ""
-			m.err = nil
-		} else if m.input == "2" {
-			m.editBandIndex = 2
-			m.currentBand = 2
-			m.screen = screenBandInput
-			m.input = ""
-			m.err = nil
-		} else if m.input == "3" {
-			m.editBandIndex = 3
-			m.currentBand = 3
-			m.screen = screenBandInput
-			m.input = ""
-			m.err = nil
-		} else if m.input == "4" {
-			m.editBandIndex = 4
-			m.currentBand = 4
-			m.screen = screenBandInput
-			m.input = ""
-			m.err = nil
-		} else if m.input == "5" && maxBand >= 5 {
-			m.editBandIndex = 5
-			m.currentBand = 5
-			m.screen = screenBandInput
-			m.input = ""
-			m.err = nil
-		} else if m.input == "6" && maxBand >= 6 {
-			m.editBandIndex = 6
-			m.currentBand = 6
-			m.screen = screenBandInput
-			m.input = ""
-			m.err = nil
-		} else {
-			m.err = fmt.Errorf("invalid band number")
-		}
+	// Parse band number to edit
+	if key == "1" {
+		m.editBandIndex = 1
+		m.currentBand = 1
+		m.screen = screenBandInput
+		m.input = ""
+		m.err = nil
+	} else if key == "2" {
+		m.editBandIndex = 2
+		m.currentBand = 2
+		m.screen = screenBandInput
+		m.input = ""
+		m.err = nil
+	} else if key == "3" {
+		m.editBandIndex = 3
+		m.currentBand = 3
+		m.screen = screenBandInput
+		m.input = ""
+		m.err = nil
+	} else if key == "4" {
+		m.editBandIndex = 4
+		m.currentBand = 4
+		m.screen = screenBandInput
+		m.input = ""
+		m.err = nil
+	} else if key == "5" && maxBand >= 5 {
+		m.editBandIndex = 5
+		m.currentBand = 5
+		m.screen = screenBandInput
+		m.input = ""
+		m.err = nil
+	} else if key == "6" && maxBand >= 6 {
+		m.editBandIndex = 6
+		m.currentBand = 6
+		m.screen = screenBandInput
+		m.input = ""
+		m.err = nil
 	} else if strings.ToLower(key) == "q" {
 		// Cancel edit, go back to review
 		m.screen = screenReview
 		m.input = ""
 		m.err = nil
-	} else if key == "backspace" || key == "delete" {
-		if len(m.input) > 0 {
-			m.input = m.input[:len(m.input)-1]
-		}
-	} else if len(key) == 1 {
-		m.input += key
 	}
 
 	return m, nil
@@ -707,8 +677,7 @@ func (m model) renderComponentSelection() string {
 	b.WriteString(valueStyle.Render("  (R) Resistor - EIA Standard (4/5/6 bands)"))
 	b.WriteString("\n\n")
 
-	b.WriteString(promptStyle.Render("Select component type (C/R): "))
-	b.WriteString(inputStyle.Render(m.input))
+	b.WriteString(promptStyle.Render("Press C for Capacitor, R for Resistor, or Q to quit"))
 	b.WriteString("\n")
 
 	if m.err != nil {
@@ -728,7 +697,7 @@ func (m model) renderTypeSelection() string {
 	var b strings.Builder
 
 	b.WriteString("\n")
-	b.WriteString(headerStyle.Render(" STEP 1: SELECT CAPACITOR TYPE "))
+	b.WriteString(headerStyle.Render(" STEP 2: SELECT CAPACITOR TYPE "))
 	b.WriteString("\n\n")
 
 	b.WriteString(valueStyle.Render("Available types:"))
@@ -744,8 +713,7 @@ func (m model) renderTypeSelection() string {
 	b.WriteString(valueStyle.Render("  N = Electrolytic (3-band)"))
 	b.WriteString("\n\n")
 
-	b.WriteString(promptStyle.Render("Enter capacitor type (J/K/L/M/N): "))
-	b.WriteString(inputStyle.Render(m.input))
+	b.WriteString(promptStyle.Render("Press J, K, L, M, N to select type, or Q to quit"))
 	b.WriteString("\n")
 
 	if m.err != nil {
@@ -790,7 +758,7 @@ func (m model) renderBandCountSelection() string {
 		b.WriteString(valueStyle.Render("  5 = 5-band (value + multiplier + tolerance + voltage + temp coeff)"))
 		b.WriteString("\n\n")
 
-		b.WriteString(promptStyle.Render("Enter band count (3/4/5): "))
+		b.WriteString(promptStyle.Render("Press 3, 4, or 5 to select band count, or Q to quit"))
 	} else if m.componentType == ComponentResistor {
 		b.WriteString(labelStyle.Render("Component: "))
 		b.WriteString(valueStyle.Render("Resistor"))
@@ -805,10 +773,9 @@ func (m model) renderBandCountSelection() string {
 		b.WriteString(valueStyle.Render("  6 = 6-band (precision + temperature coefficient)"))
 		b.WriteString("\n\n")
 
-		b.WriteString(promptStyle.Render("Enter band count (4/5/6): "))
+		b.WriteString(promptStyle.Render("Press 4, 5, or 6 to select band count, or Q to quit"))
 	}
 
-	b.WriteString(inputStyle.Render(m.input))
 	b.WriteString("\n")
 
 	if m.err != nil {
@@ -1246,8 +1213,7 @@ func (m model) renderEdit() string {
 	b.WriteString(valueStyle.Render("  Q = Cancel (keep current values)"))
 	b.WriteString("\n\n")
 
-	b.WriteString(promptStyle.Render(fmt.Sprintf("Select band (1-%d/Q): ", bandCount)))
-	b.WriteString(inputStyle.Render(m.input))
+	b.WriteString(promptStyle.Render(fmt.Sprintf("Press 1-%d to select band, or Q to cancel", bandCount)))
 	b.WriteString("\n")
 
 	if m.err != nil {
