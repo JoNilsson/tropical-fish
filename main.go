@@ -26,10 +26,13 @@ func initialModel() model {
 		screen:      screenWelcome,
 		input:       "",
 		currentBand: 1,
-		reading: CapacitorReading{
+		capacitorReading: CapacitorReading{
 			BandCount: 5, // Default to 5 bands
 		},
-		history:    []CapacitorEntry{},
+		resistorReading: ResistorReading{
+			BandCount: 4, // Default to 4 bands
+		},
+		history:    []ComponentEntry{},
 		filepicker: fp,
 	}
 }
@@ -38,6 +41,7 @@ type screenType int
 
 const (
 	screenWelcome screenType = iota
+	screenComponentSelection
 	screenTypeSelection
 	screenBandCountSelection
 	screenBandInput
@@ -48,27 +52,24 @@ const (
 	screenFilePicker
 )
 
-// CapacitorEntry represents a decoded capacitor with notes
-type CapacitorEntry struct {
-	Result *CalculationResult
-	Note   string
-}
-
 type model struct {
-	screen        screenType
-	input         string
-	suggestion    string // Autocomplete suggestion for current input
-	err           error
-	successMsg    string // Success message (e.g., export success)
-	quitting      bool
-	currentBand   int // Current band being input (1-5)
-	reading       CapacitorReading
-	result        *CalculationResult
-	editBandIndex int // For edit mode
-	currentNote   string // Current note being edited
-	history       []CapacitorEntry // History of decoded capacitors
-	filepicker    filepicker.Model // File picker for export
-	selectedFile  string // Selected export file path
+	screen          screenType
+	input           string
+	suggestion      string // Autocomplete suggestion for current input
+	err             error
+	successMsg      string // Success message (e.g., export success)
+	quitting        bool
+	currentBand     int // Current band being input (1-6)
+	componentType   ComponentType
+	capacitorReading CapacitorReading
+	resistorReading  ResistorReading
+	capacitorResult  *CalculationResult
+	resistorResult   *ResistorResult
+	editBandIndex   int // For edit mode
+	currentNote     string // Current note being edited
+	history         []ComponentEntry // History of decoded components
+	filepicker      filepicker.Model // File picker for export
+	selectedFile    string // Selected export file path
 }
 
 func (m model) Init() tea.Cmd {
@@ -123,6 +124,8 @@ func (m model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch m.screen {
 	case screenWelcome:
 		return m.handleWelcomeInput(key)
+	case screenComponentSelection:
+		return m.handleComponentSelectionInput(key)
 	case screenTypeSelection:
 		return m.handleTypeSelectionInput(key)
 	case screenBandCountSelection:
@@ -144,7 +147,7 @@ func (m model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m model) handleWelcomeInput(key string) (tea.Model, tea.Cmd) {
 	if key == "enter" || key == " " {
-		m.screen = screenTypeSelection
+		m.screen = screenComponentSelection
 		m.input = ""
 		m.err = nil
 	} else if key == "q" {
@@ -154,11 +157,38 @@ func (m model) handleWelcomeInput(key string) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m model) handleComponentSelectionInput(key string) (tea.Model, tea.Cmd) {
+	lowerKey := strings.ToLower(key)
+
+	if key == "enter" && m.input != "" {
+		if lowerKey == "c" {
+			m.componentType = ComponentCapacitor
+			m.screen = screenTypeSelection
+			m.input = ""
+			m.err = nil
+		} else if lowerKey == "r" {
+			m.componentType = ComponentResistor
+			m.screen = screenBandCountSelection
+			m.input = ""
+			m.err = nil
+		} else {
+			m.err = fmt.Errorf("invalid selection: please enter C for Capacitor or R for Resistor")
+		}
+	} else if key == "backspace" || key == "delete" {
+		if len(m.input) > 0 {
+			m.input = m.input[:len(m.input)-1]
+		}
+	} else if len(key) == 1 {
+		m.input += key
+	}
+	return m, nil
+}
+
 func (m model) handleTypeSelectionInput(key string) (tea.Model, tea.Cmd) {
 	if key == "enter" && m.input != "" {
 		capType, valid := ParseCapacitorType(m.input)
 		if valid {
-			m.reading.CapType = capType
+			m.capacitorReading.CapType = capType
 			m.screen = screenBandCountSelection
 			m.input = ""
 			m.err = nil
@@ -177,26 +207,43 @@ func (m model) handleTypeSelectionInput(key string) (tea.Model, tea.Cmd) {
 
 func (m model) handleBandCountInput(key string) (tea.Model, tea.Cmd) {
 	if key == "enter" && m.input != "" {
-		if m.input == "3" {
-			m.reading.BandCount = 3
-			m.screen = screenBandInput
-			m.currentBand = 1
-			m.input = ""
-			m.err = nil
-		} else if m.input == "4" {
-			m.reading.BandCount = 4
-			m.screen = screenBandInput
-			m.currentBand = 1
-			m.input = ""
-			m.err = nil
-		} else if m.input == "5" {
-			m.reading.BandCount = 5
+		bandCount := 0
+		if m.input == "3" || m.input == "4" || m.input == "5" || m.input == "6" {
+			if m.input == "3" {
+				bandCount = 3
+			} else if m.input == "4" {
+				bandCount = 4
+			} else if m.input == "5" {
+				bandCount = 5
+			} else if m.input == "6" {
+				bandCount = 6
+			}
+
+			// Validate band count based on component type
+			if m.componentType == ComponentCapacitor {
+				if bandCount < 3 || bandCount > 5 {
+					m.err = fmt.Errorf("invalid band count for capacitor: please enter 3, 4, or 5")
+					return m, nil
+				}
+				m.capacitorReading.BandCount = bandCount
+			} else if m.componentType == ComponentResistor {
+				if bandCount < 4 || bandCount > 6 {
+					m.err = fmt.Errorf("invalid band count for resistor: please enter 4, 5, or 6")
+					return m, nil
+				}
+				m.resistorReading.BandCount = bandCount
+			}
+
 			m.screen = screenBandInput
 			m.currentBand = 1
 			m.input = ""
 			m.err = nil
 		} else {
-			m.err = fmt.Errorf("invalid band count: please enter 3, 4, or 5")
+			if m.componentType == ComponentCapacitor {
+				m.err = fmt.Errorf("invalid band count: please enter 3, 4, or 5")
+			} else {
+				m.err = fmt.Errorf("invalid band count: please enter 4, 5, or 6")
+			}
 		}
 	} else if key == "backspace" || key == "delete" {
 		if len(m.input) > 0 {
@@ -223,39 +270,98 @@ func (m model) handleBandInputInput(key string) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Validate based on current band
+		// Validate and store based on component type
 		var validationErr error
-		switch m.currentBand {
-		case 1:
-			validationErr = ValidateBand1(color)
-			if validationErr == nil {
-				m.reading.Band1 = color
-			}
-		case 2:
-			validationErr = ValidateBand2(color)
-			if validationErr == nil {
-				m.reading.Band2 = color
-			}
-		case 3:
-			validationErr = ValidateBand3(color)
-			if validationErr == nil {
-				m.reading.Band3 = color
-			}
-		case 4:
-			// Calculate capacitance for validation
-			info1 := GetColorInfo(m.reading.Band1)
-			info2 := GetColorInfo(m.reading.Band2)
-			info3 := GetColorInfo(m.reading.Band3)
-			capacitancePF := float64(info1.Digit*10+info2.Digit) * info3.Multiplier
+		var bandCount int
 
-			validationErr = ValidateBand4(color, capacitancePF)
-			if validationErr == nil {
-				m.reading.Band4 = color
+		if m.componentType == ComponentCapacitor {
+			bandCount = m.capacitorReading.BandCount
+			// Validate based on current band
+			switch m.currentBand {
+			case 1:
+				validationErr = ValidateBand1(color)
+				if validationErr == nil {
+					m.capacitorReading.Band1 = color
+				}
+			case 2:
+				validationErr = ValidateBand2(color)
+				if validationErr == nil {
+					m.capacitorReading.Band2 = color
+				}
+			case 3:
+				validationErr = ValidateBand3(color)
+				if validationErr == nil {
+					m.capacitorReading.Band3 = color
+				}
+			case 4:
+				// Calculate capacitance for validation
+				info1 := GetColorInfo(m.capacitorReading.Band1)
+				info2 := GetColorInfo(m.capacitorReading.Band2)
+				info3 := GetColorInfo(m.capacitorReading.Band3)
+				capacitancePF := float64(info1.Digit*10+info2.Digit) * info3.Multiplier
+
+				validationErr = ValidateBand4(color, capacitancePF)
+				if validationErr == nil {
+					m.capacitorReading.Band4 = color
+				}
+			case 5:
+				validationErr = ValidateBand5(color, m.capacitorReading.CapType, m.capacitorReading.BandCount)
+				if validationErr == nil {
+					m.capacitorReading.Band5 = color
+				}
 			}
-		case 5:
-			validationErr = ValidateBand5(color, m.reading.CapType, m.reading.BandCount)
-			if validationErr == nil {
-				m.reading.Band5 = color
+		} else if m.componentType == ComponentResistor {
+			bandCount = m.resistorReading.BandCount
+			// Validate resistor bands
+			switch m.currentBand {
+			case 1:
+				validationErr = ValidateResistorBand1(color)
+				if validationErr == nil {
+					m.resistorReading.Band1 = color
+				}
+			case 2:
+				validationErr = ValidateResistorBand2(color)
+				if validationErr == nil {
+					m.resistorReading.Band2 = color
+				}
+			case 3:
+				// For 4-band resistors, band 3 is the multiplier
+				// For 5/6-band resistors, band 3 is the third digit
+				if bandCount == 4 {
+					validationErr = ValidateResistorMultiplier(color, 3)
+					if validationErr == nil {
+						m.resistorReading.Band3 = color
+					}
+				} else {
+					validationErr = ValidateResistorBand3(color)
+					if validationErr == nil {
+						m.resistorReading.Band3 = color
+					}
+				}
+			case 4:
+				// For 4-band resistors, band 4 is tolerance
+				// For 5/6-band resistors, band 4 is multiplier
+				if bandCount == 4 {
+					validationErr = ValidateResistorTolerance(color, 4)
+					if validationErr == nil {
+						m.resistorReading.Band4 = color
+					}
+				} else {
+					validationErr = ValidateResistorMultiplier(color, 4)
+					if validationErr == nil {
+						m.resistorReading.Band4 = color
+					}
+				}
+			case 5:
+				validationErr = ValidateResistorTolerance(color, 5)
+				if validationErr == nil {
+					m.resistorReading.Band5 = color
+				}
+			case 6:
+				validationErr = ValidateResistorTempCoeff(color)
+				if validationErr == nil {
+					m.resistorReading.Band6 = color
+				}
 			}
 		}
 
@@ -265,7 +371,7 @@ func (m model) handleBandInputInput(key string) (tea.Model, tea.Cmd) {
 		}
 
 		// Move to next band or review screen
-		if m.currentBand < m.reading.BandCount {
+		if m.currentBand < bandCount {
 			m.currentBand++
 			m.input = ""
 			m.suggestion = "" // Clear suggestion
