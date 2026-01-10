@@ -36,7 +36,7 @@ type ResistorResult struct {
 	MinUnit          string
 	MaxUnit          string
 
-	TempCoefficient int  // ppm/°C (6-band only)
+	TempCoefficient int // ppm/°C (6-band only)
 	TempCoeffValid  bool
 
 	Reading ResistorReading
@@ -213,9 +213,9 @@ func CalculateResistor(reading ResistorReading) (*ResistorResult, error) {
 func scaleResistance(ohms float64) (float64, string) {
 	// Conversion factors
 	const (
-		ohmsToKOhms = 1000.0         // 1 kΩ = 1,000 Ω
-		ohmsToMOhms = 1000000.0      // 1 MΩ = 1,000,000 Ω
-		ohmsToGOhms = 1000000000.0   // 1 GΩ = 1,000,000,000 Ω
+		ohmsToKOhms = 1000.0       // 1 kΩ = 1,000 Ω
+		ohmsToMOhms = 1000000.0    // 1 MΩ = 1,000,000 Ω
+		ohmsToGOhms = 1000000000.0 // 1 GΩ = 1,000,000,000 Ω
 	)
 
 	// Try GΩ (gigohms)

@@ -171,7 +171,7 @@ func GetColorStyle(color Color) lipgloss.Style {
 	// For light colors, use dark text; for dark colors, use light text
 	textColor := lipgloss.Color("#000000")
 	if color == ColorBlack || color == ColorBrown || color == ColorRed ||
-	   color == ColorBlue || color == ColorViolet || color == ColorGrey {
+		color == ColorBlue || color == ColorViolet || color == ColorGrey {
 		textColor = lipgloss.Color("#FFFFFF")
 	}
 

@@ -24,124 +24,124 @@ const (
 
 // ColorInfo contains all information about a color band
 type ColorInfo struct {
-	Name        string
-	Digit       int     // For bands 1-2 (0-9)
-	Multiplier  float64 // For band 3
-	HexColor    string  // For terminal display
-	ValidDigit  bool    // Can be used as digit (bands 1-2)
-	ValidMult   bool    // Can be used as multiplier (band 3)
-	ValidTol    bool    // Can be used as tolerance (band 4)
+	Name       string
+	Digit      int     // For bands 1-2 (0-9)
+	Multiplier float64 // For band 3
+	HexColor   string  // For terminal display
+	ValidDigit bool    // Can be used as digit (bands 1-2)
+	ValidMult  bool    // Can be used as multiplier (band 3)
+	ValidTol   bool    // Can be used as tolerance (band 4)
 }
 
 // colorMap maps color names to their properties
 var colorMap = map[Color]ColorInfo{
 	ColorBlack: {
-		Name:        "Black",
-		Digit:       0,
-		Multiplier:  1,
-		HexColor:    "#000000",
-		ValidDigit:  true,
-		ValidMult:   true,
-		ValidTol:    true,
+		Name:       "Black",
+		Digit:      0,
+		Multiplier: 1,
+		HexColor:   "#000000",
+		ValidDigit: true,
+		ValidMult:  true,
+		ValidTol:   true,
 	},
 	ColorBrown: {
-		Name:        "Brown",
-		Digit:       1,
-		Multiplier:  10,
-		HexColor:    "#8B4513",
-		ValidDigit:  true,
-		ValidMult:   true,
-		ValidTol:    true,
+		Name:       "Brown",
+		Digit:      1,
+		Multiplier: 10,
+		HexColor:   "#8B4513",
+		ValidDigit: true,
+		ValidMult:  true,
+		ValidTol:   true,
 	},
 	ColorRed: {
-		Name:        "Red",
-		Digit:       2,
-		Multiplier:  100,
-		HexColor:    "#FF0000",
-		ValidDigit:  true,
-		ValidMult:   true,
-		ValidTol:    true,
+		Name:       "Red",
+		Digit:      2,
+		Multiplier: 100,
+		HexColor:   "#FF0000",
+		ValidDigit: true,
+		ValidMult:  true,
+		ValidTol:   true,
 	},
 	ColorOrange: {
-		Name:        "Orange",
-		Digit:       3,
-		Multiplier:  1000,
-		HexColor:    "#FF8C00",
-		ValidDigit:  true,
-		ValidMult:   true,
-		ValidTol:    true,
+		Name:       "Orange",
+		Digit:      3,
+		Multiplier: 1000,
+		HexColor:   "#FF8C00",
+		ValidDigit: true,
+		ValidMult:  true,
+		ValidTol:   true,
 	},
 	ColorYellow: {
-		Name:        "Yellow",
-		Digit:       4,
-		Multiplier:  10000,
-		HexColor:    "#FFFF00",
-		ValidDigit:  true,
-		ValidMult:   true,
-		ValidTol:    true,
+		Name:       "Yellow",
+		Digit:      4,
+		Multiplier: 10000,
+		HexColor:   "#FFFF00",
+		ValidDigit: true,
+		ValidMult:  true,
+		ValidTol:   true,
 	},
 	ColorGreen: {
-		Name:        "Green",
-		Digit:       5,
-		Multiplier:  100000,
-		HexColor:    "#00FF00",
-		ValidDigit:  true,
-		ValidMult:   true,
-		ValidTol:    true,
+		Name:       "Green",
+		Digit:      5,
+		Multiplier: 100000,
+		HexColor:   "#00FF00",
+		ValidDigit: true,
+		ValidMult:  true,
+		ValidTol:   true,
 	},
 	ColorBlue: {
-		Name:        "Blue",
-		Digit:       6,
-		Multiplier:  1000000,
-		HexColor:    "#0000FF",
-		ValidDigit:  true,
-		ValidMult:   true,
-		ValidTol:    false,
+		Name:       "Blue",
+		Digit:      6,
+		Multiplier: 1000000,
+		HexColor:   "#0000FF",
+		ValidDigit: true,
+		ValidMult:  true,
+		ValidTol:   false,
 	},
 	ColorViolet: {
-		Name:        "Violet",
-		Digit:       7,
-		Multiplier:  10000000,
-		HexColor:    "#9400D3",
-		ValidDigit:  true,
-		ValidMult:   true,
-		ValidTol:    false,
+		Name:       "Violet",
+		Digit:      7,
+		Multiplier: 10000000,
+		HexColor:   "#9400D3",
+		ValidDigit: true,
+		ValidMult:  true,
+		ValidTol:   false,
 	},
 	ColorGrey: {
-		Name:        "Grey",
-		Digit:       8,
-		Multiplier:  0.01,
-		HexColor:    "#808080",
-		ValidDigit:  true,
-		ValidMult:   true,
-		ValidTol:    true,
+		Name:       "Grey",
+		Digit:      8,
+		Multiplier: 0.01,
+		HexColor:   "#808080",
+		ValidDigit: true,
+		ValidMult:  true,
+		ValidTol:   true,
 	},
 	ColorWhite: {
-		Name:        "White",
-		Digit:       9,
-		Multiplier:  0.1,
-		HexColor:    "#FFFFFF",
-		ValidDigit:  true,
-		ValidMult:   true,
-		ValidTol:    true,
+		Name:       "White",
+		Digit:      9,
+		Multiplier: 0.1,
+		HexColor:   "#FFFFFF",
+		ValidDigit: true,
+		ValidMult:  true,
+		ValidTol:   true,
 	},
 	ColorGold: {
-		Name:        "Gold",
-		Digit:       -1, // Not valid for digit bands
-		Multiplier:  0.1,
-		HexColor:    "#FFD700",
-		ValidDigit:  false,
-		ValidMult:   true,
-		ValidTol:    true,
+		Name:       "Gold",
+		Digit:      -1, // Not valid for digit bands
+		Multiplier: 0.1,
+		HexColor:   "#FFD700",
+		ValidDigit: false,
+		ValidMult:  true,
+		ValidTol:   true,
 	},
 	ColorSilver: {
-		Name:        "Silver",
-		Digit:       -1, // Not valid for digit bands
-		Multiplier:  0.01,
-		HexColor:    "#C0C0C0",
-		ValidDigit:  false,
-		ValidMult:   true,
-		ValidTol:    true,
+		Name:       "Silver",
+		Digit:      -1, // Not valid for digit bands
+		Multiplier: 0.01,
+		HexColor:   "#C0C0C0",
+		ValidDigit: false,
+		ValidMult:  true,
+		ValidTol:   true,
 	},
 }
 
@@ -212,10 +212,10 @@ var toleranceMap = map[Color]ToleranceInfo{
 		AbsolutePF:  0, // Not used for small caps
 	},
 	ColorGrey: {
-		PercentHigh: 80,  // +80%
-		PercentLow:  20,  // -20%
+		PercentHigh: 80,    // +80%
+		PercentLow:  20,    // -20%
 		Symmetric:   false, // Asymmetric
-		AbsolutePF:  0,   // Not used for small caps
+		AbsolutePF:  0,     // Not used for small caps
 	},
 }
 

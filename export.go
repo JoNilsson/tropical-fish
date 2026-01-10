@@ -9,10 +9,10 @@ import (
 
 // ComponentEntry represents a decoded component (capacitor or resistor) with notes
 type ComponentEntry struct {
-	ComponentType    ComponentType
-	CapacitorResult  *CalculationResult
-	ResistorResult   *ResistorResult
-	Note             string
+	ComponentType   ComponentType
+	CapacitorResult *CalculationResult
+	ResistorResult  *ResistorResult
+	Note            string
 }
 
 // ExportToCSV exports the component history to a CSV file

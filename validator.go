@@ -65,7 +65,7 @@ func ValidateBand4(color Color, capacitancePF float64) error {
 		info := GetColorInfo(color)
 		return &ValidationError{
 			BandNumber: 4,
-			Message: fmt.Sprintf("%s tolerance not typically used for capacitors ≤10pF (use Brown, Red, Green, or White for absolute tolerance)", info.Name),
+			Message:    fmt.Sprintf("%s tolerance not typically used for capacitors ≤10pF (use Brown, Red, Green, or White for absolute tolerance)", info.Name),
 		}
 	}
 

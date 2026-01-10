@@ -7,13 +7,13 @@ import (
 
 // CapacitorReading represents the parsed bands from user input
 type CapacitorReading struct {
-	Band1        Color         // First digit
-	Band2        Color         // Second digit
-	Band3        Color         // Multiplier
-	Band4        Color         // Tolerance
-	Band5        Color         // Voltage rating / temp coefficient
-	BandCount    int           // 3, 4, or 5 bands
-	CapType      CapacitorType // J, K, L, M, or N
+	Band1     Color         // First digit
+	Band2     Color         // Second digit
+	Band3     Color         // Multiplier
+	Band4     Color         // Tolerance
+	Band5     Color         // Voltage rating / temp coefficient
+	BandCount int           // 3, 4, or 5 bands
+	CapType   CapacitorType // J, K, L, M, or N
 }
 
 // CalculationResult contains all calculated values
@@ -24,12 +24,12 @@ type CalculationResult struct {
 	CapacitanceUnit  string  // pF, nF, µF, or mF
 
 	// Tolerance
-	ToleranceType      string  // "percentage" or "absolute"
-	TolerancePercent   float64 // For percentage-based
+	ToleranceType       string  // "percentage" or "absolute"
+	TolerancePercent    float64 // For percentage-based
 	ToleranceAbsolutePF float64 // For absolute (small caps)
-	ToleranceSymmetric bool    // True for symmetric tolerance
-	ToleranceHigh      float64 // +% for asymmetric (e.g., Grey)
-	ToleranceLow       float64 // -% for asymmetric
+	ToleranceSymmetric  bool    // True for symmetric tolerance
+	ToleranceHigh       float64 // +% for asymmetric (e.g., Grey)
+	ToleranceLow        float64 // -% for asymmetric
 
 	// Range (min/max values)
 	MinValue float64
@@ -38,12 +38,12 @@ type CalculationResult struct {
 	MaxUnit  string
 
 	// Voltage
-	VoltageRating     float64
-	VoltageValid      bool
+	VoltageRating float64
+	VoltageValid  bool
 
 	// Temperature Coefficient
-	TempCoefficient   int
-	TempCoeffValid    bool
+	TempCoefficient int
+	TempCoeffValid  bool
 
 	// Original reading
 	Reading CapacitorReading
@@ -102,8 +102,8 @@ func Calculate(reading CapacitorReading) (*CalculationResult, error) {
 func scaleCapacitance(pF float64) (float64, string) {
 	// Conversion factors
 	const (
-		pFToNF = 1000.0      // 1 nF = 1000 pF
-		pFToUF = 1000000.0   // 1 µF = 1,000,000 pF
+		pFToNF = 1000.0       // 1 nF = 1000 pF
+		pFToUF = 1000000.0    // 1 µF = 1,000,000 pF
 		pFToMF = 1000000000.0 // 1 mF = 1,000,000,000 pF
 	)
 

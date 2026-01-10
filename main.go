@@ -53,23 +53,23 @@ const (
 )
 
 type model struct {
-	screen          screenType
-	input           string
-	suggestion      string // Autocomplete suggestion for current input
-	err             error
-	successMsg      string // Success message (e.g., export success)
-	quitting        bool
-	currentBand     int // Current band being input (1-6)
-	componentType   ComponentType
+	screen           screenType
+	input            string
+	suggestion       string // Autocomplete suggestion for current input
+	err              error
+	successMsg       string // Success message (e.g., export success)
+	quitting         bool
+	currentBand      int // Current band being input (1-6)
+	componentType    ComponentType
 	capacitorReading CapacitorReading
 	resistorReading  ResistorReading
 	capacitorResult  *CalculationResult
 	resistorResult   *ResistorResult
-	editBandIndex   int // For edit mode
-	currentNote     string // Current note being edited
-	history         []ComponentEntry // History of decoded components
-	filepicker      filepicker.Model // File picker for export
-	selectedFile    string // Selected export file path
+	editBandIndex    int              // For edit mode
+	currentNote      string           // Current note being edited
+	history          []ComponentEntry // History of decoded components
+	filepicker       filepicker.Model // File picker for export
+	selectedFile     string           // Selected export file path
 }
 
 func (m model) Init() tea.Cmd {
@@ -476,7 +476,7 @@ func (m model) handleResultsInput(key string) (tea.Model, tea.Cmd) {
 		// Add current result to history if not already there
 		if len(m.history) == 0 ||
 			(len(m.history) > 0 && (m.history[len(m.history)-1].CapacitorResult != m.capacitorResult ||
-			m.history[len(m.history)-1].ResistorResult != m.resistorResult)) {
+				m.history[len(m.history)-1].ResistorResult != m.resistorResult)) {
 			entry := ComponentEntry{
 				ComponentType:   m.componentType,
 				CapacitorResult: m.capacitorResult,
@@ -622,6 +622,8 @@ func (m model) View() string {
 	switch m.screen {
 	case screenWelcome:
 		return m.renderWelcome()
+	case screenComponentSelection:
+		return m.renderComponentSelection()
 	case screenTypeSelection:
 		return m.renderTypeSelection()
 	case screenBandCountSelection:
@@ -649,35 +651,61 @@ func (m model) renderWelcome() string {
 	b.WriteString("\n")
 	b.WriteString(headerStyle.Render("═══════════════════════════════════════════════════════════════"))
 	b.WriteString("\n")
-	b.WriteString(titleStyle.Render("    TROPICAL FISH CAPACITOR COLOR CODE DECODER"))
+	b.WriteString(titleStyle.Render("    TROPICAL FISH COMPONENT COLOR CODE DECODER"))
 	b.WriteString("\n")
-	b.WriteString(subtitleStyle.Render("        IEC 60062 Standard 5-Band Capacitor Calculator"))
+	b.WriteString(subtitleStyle.Render("            Welcome Screen"))
 	b.WriteString("\n")
 	b.WriteString(headerStyle.Render("═══════════════════════════════════════════════════════════════"))
 	b.WriteString("\n\n")
 
-	b.WriteString(valueStyle.Render("Decode color bands from your capacitor to determine its value,"))
+	b.WriteString(valueStyle.Render("Decode color bands from capacitors and resistors to determine"))
 	b.WriteString("\n")
-	b.WriteString(valueStyle.Render("tolerance, and voltage rating."))
+	b.WriteString(valueStyle.Render("values, tolerances, and ratings."))
 	b.WriteString("\n\n")
 
-	b.WriteString(labelStyle.Render("Available capacitor types:"))
+	b.WriteString(labelStyle.Render("Supported components:"))
 	b.WriteString("\n")
-	b.WriteString(valueStyle.Render("  J = Dipped Tantalum"))
+	b.WriteString(valueStyle.Render("  • Capacitors - IEC 60062 Standard (3/4/5 bands)"))
 	b.WriteString("\n")
-	b.WriteString(valueStyle.Render("  K = Mica"))
-	b.WriteString("\n")
-	b.WriteString(valueStyle.Render("  L = Polyester / Polystyrene"))
-	b.WriteString("\n")
-	b.WriteString(valueStyle.Render("  M = Electrolytic (4-band style)"))
-	b.WriteString("\n")
-	b.WriteString(valueStyle.Render("  N = Electrolytic (3-band style)"))
+	b.WriteString(valueStyle.Render("  • Resistors - EIA Standard (4/5/6 bands)"))
 	b.WriteString("\n\n")
 
 	b.WriteString(RenderSeparator(64))
 	b.WriteString("\n\n")
 
 	b.WriteString(promptStyle.Render("Press ENTER to begin, or Q to quit"))
+	b.WriteString("\n")
+
+	return b.String()
+}
+
+func (m model) renderComponentSelection() string {
+	var b strings.Builder
+
+	b.WriteString("\n")
+	b.WriteString(headerStyle.Render(" STEP 1: SELECT COMPONENT TYPE "))
+	b.WriteString("\n\n")
+
+	b.WriteString(valueStyle.Render("What would you like to decode?"))
+	b.WriteString("\n\n")
+
+	b.WriteString(valueStyle.Render("  (C) Capacitor - IEC 60062 Standard (3/4/5 bands)"))
+	b.WriteString("\n")
+	b.WriteString(valueStyle.Render("  (R) Resistor - EIA Standard (4/5/6 bands)"))
+	b.WriteString("\n\n")
+
+	b.WriteString(promptStyle.Render("Select component type (C/R): "))
+	b.WriteString(inputStyle.Render(m.input))
+	b.WriteString("\n")
+
+	if m.err != nil {
+		b.WriteString("\n")
+		b.WriteString(errorStyle.Render("✗ " + m.err.Error()))
+		b.WriteString("\n")
+	}
+
+	b.WriteString("\n")
+	b.WriteString(helpStyle.Render("Press Ctrl+C to quit"))
 	b.WriteString("\n")
 
 	return b.String()
@@ -723,26 +751,50 @@ func (m model) renderTypeSelection() string {
 func (m model) renderBandCountSelection() string {
 	var b strings.Builder
 
-	typeInfo, _ := GetTypeInfo(m.reading.CapType)
+	stepNum := "STEP 2"
+	if m.componentType == ComponentResistor {
+		stepNum = "STEP 2" // Still step 2 for resistors
+	} else {
+		stepNum = "STEP 3" // Step 3 for capacitors (after type selection)
+	}
 
 	b.WriteString("\n")
-	b.WriteString(headerStyle.Render(" STEP 2: SELECT BAND COUNT "))
+	b.WriteString(headerStyle.Render(fmt.Sprintf(" %s: SELECT BAND COUNT ", stepNum)))
 	b.WriteString("\n\n")
 
-	b.WriteString(labelStyle.Render("Capacitor Type: "))
-	b.WriteString(valueStyle.Render(string(m.reading.CapType) + " (" + typeInfo.Description + ")"))
-	b.WriteString("\n\n")
+	if m.componentType == ComponentCapacitor {
+		typeInfo, _ := GetTypeInfo(m.capacitorReading.CapType)
+		b.WriteString(labelStyle.Render("Capacitor Type: "))
+		b.WriteString(valueStyle.Render(string(m.capacitorReading.CapType) + " (" + typeInfo.Description + ")"))
+		b.WriteString("\n\n")
 
-	b.WriteString(valueStyle.Render("How many color bands does your capacitor have?"))
-	b.WriteString("\n")
-	b.WriteString(valueStyle.Render("  3 = 3-band (value + multiplier + tolerance)"))
-	b.WriteString("\n")
-	b.WriteString(valueStyle.Render("  4 = 4-band (value + multiplier + tolerance + voltage)"))
-	b.WriteString("\n")
-	b.WriteString(valueStyle.Render("  5 = 5-band (value + multiplier + tolerance + voltage + temp coeff)"))
-	b.WriteString("\n\n")
+		b.WriteString(valueStyle.Render("How many color bands does your capacitor have?"))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  3 = 3-band (value + multiplier + tolerance)"))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  4 = 4-band (value + multiplier + tolerance + voltage)"))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  5 = 5-band (value + multiplier + tolerance + voltage + temp coeff)"))
+		b.WriteString("\n\n")
 
-	b.WriteString(promptStyle.Render("Enter band count (3/4/5): "))
+		b.WriteString(promptStyle.Render("Enter band count (3/4/5): "))
+	} else if m.componentType == ComponentResistor {
+		b.WriteString(labelStyle.Render("Component: "))
+		b.WriteString(valueStyle.Render("Resistor"))
+		b.WriteString("\n\n")
+
+		b.WriteString(valueStyle.Render("How many color bands does your resistor have?"))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  4 = 4-band (standard, ±5% or ±10% tolerance)"))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  5 = 5-band (precision, ±1% or ±2% tolerance)"))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  6 = 6-band (precision + temperature coefficient)"))
+		b.WriteString("\n\n")
+
+		b.WriteString(promptStyle.Render("Enter band count (4/5/6): "))
+	}
+
 	b.WriteString(inputStyle.Render(m.input))
 	b.WriteString("\n")
 
