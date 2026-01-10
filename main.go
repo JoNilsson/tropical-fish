@@ -401,13 +401,24 @@ func (m model) handleReviewInput(key string) (tea.Model, tea.Cmd) {
 	lowerKey := strings.ToLower(key)
 
 	if lowerKey == "enter" || lowerKey == " " {
-		// Calculate and show results
-		result, err := Calculate(m.reading)
-		if err != nil {
-			m.err = err
-			return m, nil
+		// Calculate and show results based on component type
+		if m.componentType == ComponentCapacitor {
+			result, err := Calculate(m.capacitorReading)
+			if err != nil {
+				m.err = err
+				return m, nil
+			}
+			m.capacitorResult = result
+			m.resistorResult = nil
+		} else if m.componentType == ComponentResistor {
+			result, err := CalculateResistor(m.resistorReading)
+			if err != nil {
+				m.err = err
+				return m, nil
+			}
+			m.resistorResult = result
+			m.capacitorResult = nil
 		}
-		m.result = result
 		m.screen = screenResults
 		m.err = nil
 	} else if lowerKey == "c" {
@@ -427,14 +438,16 @@ func (m model) handleResultsInput(key string) (tea.Model, tea.Cmd) {
 	lowerKey := strings.ToLower(key)
 
 	if lowerKey == "d" {
-		// Decode another - reset to type selection
-		m.screen = screenTypeSelection
+		// Decode another - reset to component selection
+		m.screen = screenComponentSelection
 		m.input = ""
 		m.currentBand = 1
 		m.err = nil
 		m.successMsg = ""
-		m.reading = CapacitorReading{BandCount: 5}
-		m.result = nil
+		m.capacitorReading = CapacitorReading{BandCount: 5}
+		m.resistorReading = ResistorReading{BandCount: 4}
+		m.capacitorResult = nil
+		m.resistorResult = nil
 		m.currentNote = ""
 	} else if lowerKey == "e" {
 		// Edit current - go to edit mode
@@ -443,15 +456,39 @@ func (m model) handleResultsInput(key string) (tea.Model, tea.Cmd) {
 		m.err = nil
 		m.successMsg = ""
 	} else if lowerKey == "n" {
-		// Add/Edit note
+		// Add/Edit note - save to history first if not already saved
+		if m.currentNote == "" && len(m.history) == 0 ||
+			(len(m.history) > 0 && m.history[len(m.history)-1].Note != m.currentNote) {
+			// Add current result to history
+			entry := ComponentEntry{
+				ComponentType:   m.componentType,
+				CapacitorResult: m.capacitorResult,
+				ResistorResult:  m.resistorResult,
+				Note:            m.currentNote,
+			}
+			m.history = append(m.history, entry)
+		}
 		m.screen = screenNoteInput
 		m.input = m.currentNote // Pre-fill with existing note
 		m.err = nil
 		m.successMsg = ""
 	} else if lowerKey == "x" {
+		// Add current result to history if not already there
+		if len(m.history) == 0 ||
+			(len(m.history) > 0 && (m.history[len(m.history)-1].CapacitorResult != m.capacitorResult ||
+			m.history[len(m.history)-1].ResistorResult != m.resistorResult)) {
+			entry := ComponentEntry{
+				ComponentType:   m.componentType,
+				CapacitorResult: m.capacitorResult,
+				ResistorResult:  m.resistorResult,
+				Note:            m.currentNote,
+			}
+			m.history = append(m.history, entry)
+		}
+
 		// Check if there's data to export
 		if len(m.history) == 0 {
-			m.err = fmt.Errorf("no data to export (decode at least one capacitor first)")
+			m.err = fmt.Errorf("no data to export (decode at least one component first)")
 			m.successMsg = ""
 		} else {
 			// Navigate to file picker
@@ -521,14 +558,33 @@ func (m model) handleEditInput(key string) (tea.Model, tea.Cmd) {
 
 func (m model) handleNoteInputInput(key string) (tea.Model, tea.Cmd) {
 	if key == "enter" {
-		// Save note and add to history
+		// Save note and update/add to history
 		m.currentNote = m.input
 
-		// Add current result with note to history
-		if m.result != nil {
-			entry := CapacitorEntry{
-				Result: m.result,
-				Note:   m.currentNote,
+		// Check if we need to update existing entry or add new one
+		if len(m.history) > 0 {
+			// Update last entry's note if it matches current result
+			lastEntry := &m.history[len(m.history)-1]
+			if lastEntry.CapacitorResult == m.capacitorResult &&
+				lastEntry.ResistorResult == m.resistorResult {
+				lastEntry.Note = m.currentNote
+			} else {
+				// Add new entry
+				entry := ComponentEntry{
+					ComponentType:   m.componentType,
+					CapacitorResult: m.capacitorResult,
+					ResistorResult:  m.resistorResult,
+					Note:            m.currentNote,
+				}
+				m.history = append(m.history, entry)
+			}
+		} else {
+			// Add first entry
+			entry := ComponentEntry{
+				ComponentType:   m.componentType,
+				CapacitorResult: m.capacitorResult,
+				ResistorResult:  m.resistorResult,
+				Note:            m.currentNote,
 			}
 			m.history = append(m.history, entry)
 		}
