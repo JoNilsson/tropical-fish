@@ -1,0 +1,22 @@
+# Binaries
+tropical-fish
+tropical-fish-*
+*.exe
+
+# Build artifacts
+build/
+
+# Go build cache
+*.test
+*.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
