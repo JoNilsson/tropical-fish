@@ -506,6 +506,13 @@ func (m model) handleResultsInput(key string) (tea.Model, tea.Cmd) {
 
 func (m model) handleEditInput(key string) (tea.Model, tea.Cmd) {
 	if key == "enter" && m.input != "" {
+		var maxBand int
+		if m.componentType == ComponentCapacitor {
+			maxBand = m.capacitorReading.BandCount
+		} else {
+			maxBand = m.resistorReading.BandCount
+		}
+
 		// Parse band number to edit
 		if m.input == "1" {
 			m.editBandIndex = 1
@@ -531,9 +538,15 @@ func (m model) handleEditInput(key string) (tea.Model, tea.Cmd) {
 			m.screen = screenBandInput
 			m.input = ""
 			m.err = nil
-		} else if m.input == "5" && m.reading.BandCount >= 4 {
+		} else if m.input == "5" && maxBand >= 5 {
 			m.editBandIndex = 5
 			m.currentBand = 5
+			m.screen = screenBandInput
+			m.input = ""
+			m.err = nil
+		} else if m.input == "6" && maxBand >= 6 {
+			m.editBandIndex = 6
+			m.currentBand = 6
 			m.screen = screenBandInput
 			m.input = ""
 			m.err = nil
@@ -814,17 +827,34 @@ func (m model) renderBandCountSelection() string {
 func (m model) renderBandInput() string {
 	var b strings.Builder
 
-	typeInfo, _ := GetTypeInfo(m.reading.CapType)
+	var bandCount int
+	var bandName string
+
+	if m.componentType == ComponentCapacitor {
+		bandCount = m.capacitorReading.BandCount
+		bandName = GetBandName(m.currentBand)
+	} else {
+		bandCount = m.resistorReading.BandCount
+		bandName = GetResistorBandName(m.currentBand, bandCount)
+	}
 
 	b.WriteString("\n")
-	b.WriteString(headerStyle.Render(fmt.Sprintf(" BAND INPUT (%d of %d) ", m.currentBand, m.reading.BandCount)))
+	b.WriteString(headerStyle.Render(fmt.Sprintf(" BAND INPUT (%d of %d) ", m.currentBand, bandCount)))
 	b.WriteString("\n\n")
 
-	b.WriteString(labelStyle.Render("Type: "))
-	b.WriteString(valueStyle.Render(string(m.reading.CapType) + " (" + typeInfo.Name + ")"))
-	b.WriteString("  ")
+	if m.componentType == ComponentCapacitor {
+		typeInfo, _ := GetTypeInfo(m.capacitorReading.CapType)
+		b.WriteString(labelStyle.Render("Type: "))
+		b.WriteString(valueStyle.Render(string(m.capacitorReading.CapType) + " (" + typeInfo.Name + ")"))
+		b.WriteString("  ")
+	} else {
+		b.WriteString(labelStyle.Render("Component: "))
+		b.WriteString(valueStyle.Render("Resistor"))
+		b.WriteString("  ")
+	}
+
 	b.WriteString(labelStyle.Render("Bands: "))
-	b.WriteString(valueStyle.Render(fmt.Sprintf("%d", m.reading.BandCount)))
+	b.WriteString(valueStyle.Render(fmt.Sprintf("%d", bandCount)))
 	b.WriteString("\n\n")
 
 	b.WriteString(mutedStyle.Render("Valid colors: Black, Brown, Red, Orange, Yellow, Green, Blue,"))
@@ -838,17 +868,34 @@ func (m model) renderBandInput() string {
 		b.WriteString("\n")
 		for i := 1; i < m.currentBand; i++ {
 			var color Color
-			switch i {
-			case 1:
-				color = m.reading.Band1
-			case 2:
-				color = m.reading.Band2
-			case 3:
-				color = m.reading.Band3
-			case 4:
-				color = m.reading.Band4
-			case 5:
-				color = m.reading.Band5
+			if m.componentType == ComponentCapacitor {
+				switch i {
+				case 1:
+					color = m.capacitorReading.Band1
+				case 2:
+					color = m.capacitorReading.Band2
+				case 3:
+					color = m.capacitorReading.Band3
+				case 4:
+					color = m.capacitorReading.Band4
+				case 5:
+					color = m.capacitorReading.Band5
+				}
+			} else {
+				switch i {
+				case 1:
+					color = m.resistorReading.Band1
+				case 2:
+					color = m.resistorReading.Band2
+				case 3:
+					color = m.resistorReading.Band3
+				case 4:
+					color = m.resistorReading.Band4
+				case 5:
+					color = m.resistorReading.Band5
+				case 6:
+					color = m.resistorReading.Band6
+				}
 			}
 			b.WriteString(confirmStyle.Render(fmt.Sprintf("  ✓ Band %d: ", i)))
 			b.WriteString(RenderColorBand(color, i))
@@ -858,7 +905,7 @@ func (m model) renderBandInput() string {
 	}
 
 	// Current band input
-	b.WriteString(bandHeaderStyle.Render(fmt.Sprintf("─ BAND %d (%s) ", m.currentBand, GetBandName(m.currentBand))))
+	b.WriteString(bandHeaderStyle.Render(fmt.Sprintf("─ BAND %d (%s) ", m.currentBand, bandName)))
 	b.WriteString("\n\n")
 
 	b.WriteString(promptStyle.Render(fmt.Sprintf("Enter Band %d color: ", m.currentBand)))
@@ -892,48 +939,72 @@ func (m model) renderBandInput() string {
 func (m model) renderReview() string {
 	var b strings.Builder
 
-	typeInfo, _ := GetTypeInfo(m.reading.CapType)
-
 	b.WriteString("\n")
 	b.WriteString(headerStyle.Render(" REVIEW YOUR INPUT "))
 	b.WriteString("\n\n")
 
-	b.WriteString(labelStyle.Render("Capacitor Type: "))
-	b.WriteString(valueStyle.Render(string(m.reading.CapType) + " (" + typeInfo.Description + ")"))
-	b.WriteString("\n")
-
-	b.WriteString(labelStyle.Render("Band Count: "))
-	b.WriteString(valueStyle.Render(fmt.Sprintf("%d", m.reading.BandCount)))
-	b.WriteString("\n\n")
-
-	b.WriteString(labelStyle.Render("Bands entered:"))
-	b.WriteString("\n")
-
-	// Band 1
-	b.WriteString(valueStyle.Render("  Band 1: "))
-	b.WriteString(RenderColorBand(m.reading.Band1, 1))
-	b.WriteString("\n")
-
-	// Band 2
-	b.WriteString(valueStyle.Render("  Band 2: "))
-	b.WriteString(RenderColorBand(m.reading.Band2, 2))
-	b.WriteString("\n")
-
-	// Band 3
-	b.WriteString(valueStyle.Render("  Band 3: "))
-	b.WriteString(RenderColorBand(m.reading.Band3, 3))
-	b.WriteString("\n")
-
-	// Band 4
-	b.WriteString(valueStyle.Render("  Band 4: "))
-	b.WriteString(RenderColorBand(m.reading.Band4, 4))
-	b.WriteString("\n")
-
-	// Band 5 (if applicable)
-	if m.reading.BandCount >= 4 {
-		b.WriteString(valueStyle.Render("  Band 5: "))
-		b.WriteString(RenderColorBand(m.reading.Band5, 5))
+	if m.componentType == ComponentCapacitor {
+		typeInfo, _ := GetTypeInfo(m.capacitorReading.CapType)
+		b.WriteString(labelStyle.Render("Capacitor Type: "))
+		b.WriteString(valueStyle.Render(string(m.capacitorReading.CapType) + " (" + typeInfo.Description + ")"))
 		b.WriteString("\n")
+
+		b.WriteString(labelStyle.Render("Band Count: "))
+		b.WriteString(valueStyle.Render(fmt.Sprintf("%d", m.capacitorReading.BandCount)))
+		b.WriteString("\n\n")
+
+		b.WriteString(labelStyle.Render("Bands entered:"))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  Band 1: "))
+		b.WriteString(RenderColorBand(m.capacitorReading.Band1, 1))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  Band 2: "))
+		b.WriteString(RenderColorBand(m.capacitorReading.Band2, 2))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  Band 3: "))
+		b.WriteString(RenderColorBand(m.capacitorReading.Band3, 3))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  Band 4: "))
+		b.WriteString(RenderColorBand(m.capacitorReading.Band4, 4))
+		b.WriteString("\n")
+		if m.capacitorReading.BandCount >= 4 {
+			b.WriteString(valueStyle.Render("  Band 5: "))
+			b.WriteString(RenderColorBand(m.capacitorReading.Band5, 5))
+			b.WriteString("\n")
+		}
+	} else {
+		b.WriteString(labelStyle.Render("Component: "))
+		b.WriteString(valueStyle.Render("Resistor"))
+		b.WriteString("\n")
+
+		b.WriteString(labelStyle.Render("Band Count: "))
+		b.WriteString(valueStyle.Render(fmt.Sprintf("%d", m.resistorReading.BandCount)))
+		b.WriteString("\n\n")
+
+		b.WriteString(labelStyle.Render("Bands entered:"))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  Band 1: "))
+		b.WriteString(RenderColorBand(m.resistorReading.Band1, 1))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  Band 2: "))
+		b.WriteString(RenderColorBand(m.resistorReading.Band2, 2))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  Band 3: "))
+		b.WriteString(RenderColorBand(m.resistorReading.Band3, 3))
+		b.WriteString("\n")
+		b.WriteString(valueStyle.Render("  Band 4: "))
+		b.WriteString(RenderColorBand(m.resistorReading.Band4, 4))
+		b.WriteString("\n")
+		if m.resistorReading.BandCount >= 5 {
+			b.WriteString(valueStyle.Render("  Band 5: "))
+			b.WriteString(RenderColorBand(m.resistorReading.Band5, 5))
+			b.WriteString("\n")
+		}
+		if m.resistorReading.BandCount == 6 {
+			b.WriteString(valueStyle.Render("  Band 6: "))
+			b.WriteString(RenderColorBand(m.resistorReading.Band6, 6))
+			b.WriteString("\n")
+		}
 	}
 
 	b.WriteString("\n")
@@ -953,7 +1024,7 @@ func (m model) renderReview() string {
 }
 
 func (m model) renderResults() string {
-	if m.result == nil {
+	if m.capacitorResult == nil && m.resistorResult == nil {
 		return errorStyle.Render("\n✗ No calculation results available\n")
 	}
 
@@ -965,64 +1036,116 @@ func (m model) renderResults() string {
 	b.WriteString(resultHeaderStyle.Width(64).Render("════════════════════════════════════════════════════════════════"))
 	b.WriteString("\n\n")
 
-	typeInfo, _ := GetTypeInfo(m.result.Reading.CapType)
+	if m.componentType == ComponentCapacitor && m.capacitorResult != nil {
+		result := m.capacitorResult
+		typeInfo, _ := GetTypeInfo(result.Reading.CapType)
 
-	// Type and configuration
-	b.WriteString(resultLabelStyle.Render("Capacitor Type:"))
-	b.WriteString("  ")
-	b.WriteString(resultValueStyle.Render(string(m.result.Reading.CapType) + " (" + typeInfo.Name + ")"))
-	b.WriteString("\n")
-
-	b.WriteString(resultLabelStyle.Render("Configuration:"))
-	b.WriteString("  ")
-	b.WriteString(resultValueStyle.Render(fmt.Sprintf("%d-band", m.result.Reading.BandCount)))
-	b.WriteString("\n\n")
-
-	// Capacitance value
-	b.WriteString(labelStyle.Render("CAPACITANCE VALUE:"))
-	b.WriteString("\n")
-	b.WriteString(resultLabelStyle.Render("Value:"))
-	b.WriteString("  ")
-	b.WriteString(resultValueStyle.Render(FormatCapacitanceWithUF(m.result.CapacitanceValue, m.result.CapacitanceUnit, m.result.CapacitancePF)))
-	b.WriteString("\n\n")
-
-	// Tolerance
-	b.WriteString(labelStyle.Render("TOLERANCE:"))
-	b.WriteString("\n")
-	b.WriteString(resultLabelStyle.Render("Specification:"))
-	b.WriteString("  ")
-	tolStr := FormatTolerance(m.result)
-	if m.result.ToleranceType == "absolute" {
-		tolStr += " (absolute, value ≤ 10pF)"
-	} else {
-		tolStr += " (percentage-based, value > 10pF)"
-	}
-	b.WriteString(resultValueStyle.Render(tolStr))
-	b.WriteString("\n")
-
-	b.WriteString(resultLabelStyle.Render("Range:"))
-	b.WriteString("  ")
-	b.WriteString(resultValueStyle.Render(FormatToleranceRange(m.result)))
-	b.WriteString("\n\n")
-
-	// Voltage rating
-	if m.result.VoltageValid {
-		b.WriteString(labelStyle.Render("VOLTAGE RATING:"))
-		b.WriteString("\n")
-		b.WriteString(resultLabelStyle.Render("Voltage:"))
+		// Type and configuration
+		b.WriteString(resultLabelStyle.Render("Component Type:"))
 		b.WriteString("  ")
-		b.WriteString(resultValueStyle.Render(FormatVoltage(m.result) + " (Type " + string(m.result.Reading.CapType) + " " + typeInfo.Name + ")"))
-		b.WriteString("\n\n")
-	}
-
-	// Temperature coefficient
-	if m.result.TempCoeffValid {
-		b.WriteString(labelStyle.Render("TEMPERATURE COEFFICIENT:"))
+		b.WriteString(resultValueStyle.Render("Capacitor"))
 		b.WriteString("\n")
-		b.WriteString(resultLabelStyle.Render("Coefficient:"))
+
+		b.WriteString(resultLabelStyle.Render("Capacitor Type:"))
 		b.WriteString("  ")
-		b.WriteString(resultValueStyle.Render(FormatTempCoefficient(m.result)))
+		b.WriteString(resultValueStyle.Render(string(result.Reading.CapType) + " (" + typeInfo.Name + ")"))
+		b.WriteString("\n")
+
+		b.WriteString(resultLabelStyle.Render("Configuration:"))
+		b.WriteString("  ")
+		b.WriteString(resultValueStyle.Render(fmt.Sprintf("%d-band", result.Reading.BandCount)))
 		b.WriteString("\n\n")
+
+		// Capacitance value
+		b.WriteString(labelStyle.Render("CAPACITANCE VALUE:"))
+		b.WriteString("\n")
+		b.WriteString(resultLabelStyle.Render("Value:"))
+		b.WriteString("  ")
+		b.WriteString(resultValueStyle.Render(FormatCapacitanceWithUF(result.CapacitanceValue, result.CapacitanceUnit, result.CapacitancePF)))
+		b.WriteString("\n\n")
+
+		// Tolerance
+		b.WriteString(labelStyle.Render("TOLERANCE:"))
+		b.WriteString("\n")
+		b.WriteString(resultLabelStyle.Render("Specification:"))
+		b.WriteString("  ")
+		tolStr := FormatTolerance(result)
+		if result.ToleranceType == "absolute" {
+			tolStr += " (absolute, value ≤ 10pF)"
+		} else {
+			tolStr += " (percentage-based, value > 10pF)"
+		}
+		b.WriteString(resultValueStyle.Render(tolStr))
+		b.WriteString("\n")
+
+		b.WriteString(resultLabelStyle.Render("Range:"))
+		b.WriteString("  ")
+		b.WriteString(resultValueStyle.Render(FormatToleranceRange(result)))
+		b.WriteString("\n\n")
+
+		// Voltage rating
+		if result.VoltageValid {
+			b.WriteString(labelStyle.Render("VOLTAGE RATING:"))
+			b.WriteString("\n")
+			b.WriteString(resultLabelStyle.Render("Voltage:"))
+			b.WriteString("  ")
+			b.WriteString(resultValueStyle.Render(FormatVoltage(result) + " (Type " + string(result.Reading.CapType) + " " + typeInfo.Name + ")"))
+			b.WriteString("\n\n")
+		}
+
+		// Temperature coefficient
+		if result.TempCoeffValid {
+			b.WriteString(labelStyle.Render("TEMPERATURE COEFFICIENT:"))
+			b.WriteString("\n")
+			b.WriteString(resultLabelStyle.Render("Coefficient:"))
+			b.WriteString("  ")
+			b.WriteString(resultValueStyle.Render(FormatTempCoefficient(result)))
+			b.WriteString("\n\n")
+		}
+	} else if m.componentType == ComponentResistor && m.resistorResult != nil {
+		result := m.resistorResult
+
+		// Type and configuration
+		b.WriteString(resultLabelStyle.Render("Component Type:"))
+		b.WriteString("  ")
+		b.WriteString(resultValueStyle.Render("Resistor"))
+		b.WriteString("\n")
+
+		b.WriteString(resultLabelStyle.Render("Configuration:"))
+		b.WriteString("  ")
+		b.WriteString(resultValueStyle.Render(fmt.Sprintf("%d-band", result.Reading.BandCount)))
+		b.WriteString("\n\n")
+
+		// Resistance value
+		b.WriteString(labelStyle.Render("RESISTANCE VALUE:"))
+		b.WriteString("\n")
+		b.WriteString(resultLabelStyle.Render("Value:"))
+		b.WriteString("  ")
+		b.WriteString(resultValueStyle.Render(FormatResistance(result.ResistanceValue, result.ResistanceUnit)))
+		b.WriteString("\n\n")
+
+		// Tolerance
+		b.WriteString(labelStyle.Render("TOLERANCE:"))
+		b.WriteString("\n")
+		b.WriteString(resultLabelStyle.Render("Specification:"))
+		b.WriteString("  ")
+		b.WriteString(resultValueStyle.Render(FormatResistorTolerance(result)))
+		b.WriteString("\n")
+
+		b.WriteString(resultLabelStyle.Render("Range:"))
+		b.WriteString("  ")
+		b.WriteString(resultValueStyle.Render(FormatResistorToleranceRange(result)))
+		b.WriteString("\n\n")
+
+		// Temperature coefficient (6-band only)
+		if result.TempCoeffValid {
+			b.WriteString(labelStyle.Render("TEMPERATURE COEFFICIENT:"))
+			b.WriteString("\n")
+			b.WriteString(resultLabelStyle.Render("Coefficient:"))
+			b.WriteString("  ")
+			b.WriteString(resultValueStyle.Render(FormatResistorTempCoefficient(result)))
+			b.WriteString("\n\n")
+		}
 	}
 
 	// Current note
@@ -1054,7 +1177,7 @@ func (m model) renderResults() string {
 
 	b.WriteString(promptStyle.Render("(D)ecode  |  (E)dit  |  (N)ote  |  e(X)port  |  (Q)uit"))
 	b.WriteString("\n")
-	b.WriteString(mutedStyle.Render(fmt.Sprintf("Decoded capacitors in history: %d", len(m.history))))
+	b.WriteString(mutedStyle.Render(fmt.Sprintf("Decoded components in history: %d", len(m.history))))
 	b.WriteString("\n")
 	b.WriteString(RenderSeparator(64))
 	b.WriteString("\n")
@@ -1072,31 +1195,58 @@ func (m model) renderEdit() string {
 	b.WriteString(valueStyle.Render("Which band do you want to correct?"))
 	b.WriteString("\n\n")
 
+	var bandCount int
 	// Show all bands
-	for i := 1; i <= m.reading.BandCount; i++ {
-		var color Color
-		switch i {
-		case 1:
-			color = m.reading.Band1
-		case 2:
-			color = m.reading.Band2
-		case 3:
-			color = m.reading.Band3
-		case 4:
-			color = m.reading.Band4
-		case 5:
-			color = m.reading.Band5
-		}
+	if m.componentType == ComponentCapacitor {
+		bandCount = m.capacitorReading.BandCount
+		for i := 1; i <= bandCount; i++ {
+			var color Color
+			switch i {
+			case 1:
+				color = m.capacitorReading.Band1
+			case 2:
+				color = m.capacitorReading.Band2
+			case 3:
+				color = m.capacitorReading.Band3
+			case 4:
+				color = m.capacitorReading.Band4
+			case 5:
+				color = m.capacitorReading.Band5
+			}
 
-		b.WriteString(valueStyle.Render(fmt.Sprintf("  %d = ", i)))
-		b.WriteString(RenderColorBand(color, i))
-		b.WriteString("\n")
+			b.WriteString(valueStyle.Render(fmt.Sprintf("  %d = ", i)))
+			b.WriteString(RenderColorBand(color, i))
+			b.WriteString("\n")
+		}
+	} else {
+		bandCount = m.resistorReading.BandCount
+		for i := 1; i <= bandCount; i++ {
+			var color Color
+			switch i {
+			case 1:
+				color = m.resistorReading.Band1
+			case 2:
+				color = m.resistorReading.Band2
+			case 3:
+				color = m.resistorReading.Band3
+			case 4:
+				color = m.resistorReading.Band4
+			case 5:
+				color = m.resistorReading.Band5
+			case 6:
+				color = m.resistorReading.Band6
+			}
+
+			b.WriteString(valueStyle.Render(fmt.Sprintf("  %d = ", i)))
+			b.WriteString(RenderColorBand(color, i))
+			b.WriteString("\n")
+		}
 	}
 
 	b.WriteString(valueStyle.Render("  Q = Cancel (keep current values)"))
 	b.WriteString("\n\n")
 
-	b.WriteString(promptStyle.Render(fmt.Sprintf("Select band (1-%d/Q): ", m.reading.BandCount)))
+	b.WriteString(promptStyle.Render(fmt.Sprintf("Select band (1-%d/Q): ", bandCount)))
 	b.WriteString(inputStyle.Render(m.input))
 	b.WriteString("\n")
 
@@ -1120,7 +1270,11 @@ func (m model) renderNoteInput() string {
 	b.WriteString(headerStyle.Render(" ADD / EDIT NOTE "))
 	b.WriteString("\n\n")
 
-	b.WriteString(valueStyle.Render("Add a note to this capacitor reading (max 200 characters):"))
+	componentName := "capacitor"
+	if m.componentType == ComponentResistor {
+		componentName = "resistor"
+	}
+	b.WriteString(valueStyle.Render(fmt.Sprintf("Add a note to this %s reading (max 200 characters):", componentName)))
 	b.WriteString("\n\n")
 
 	b.WriteString(promptStyle.Render("Note: "))
