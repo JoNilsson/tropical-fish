@@ -1,119 +1,77 @@
-# Tropical Fish Capacitor Color Code Decoder
+# Tropical Fish Color Code Decoder
 
-A beautiful, interactive terminal-based application for decoding "Tropical Fish" capacitor color codes according to the IEC 60062 standard.
-
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![Go](https://img.shields.io/badge/go-1.21+-00ADD8?logo=go)
-![License](https://img.shields.io/badge/license-MIT-green)
+Terminal-based utility for decoding resistor and capacitor color codes per IEC 60062 standard.
 
 ## Overview
 
-Tropical Fish Capacitor Decoder is a lightweight TUI (Terminal User Interface) application that helps you decode the color bands on capacitors to determine their:
-- **Capacitance value** (automatically scaled to pF, nF, µF, or mF)
-- **Tolerance** (percentage-based or absolute pF for small capacitors)
-- **Voltage rating** (based on capacitor type)
-- **Temperature coefficient** (when applicable)
+Tropical Fish is a TUI application for decoding component color bands. It identifies capacitance values, resistance values, tolerance, voltage ratings, and temperature coefficients from standard color codes.
 
-Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea) for an engaging, colorful terminal experience!
+Supports:
+- **Capacitors**: 3, 4, and 5-band configurations across 5 types (J, K, L, M, N)
+- **Resistors**: 4, 5, and 6-band configurations with temperature coefficient data for 6-band types
 
-## Features
-
-✨ **Rich Terminal UI**
-- Colorful, intuitive interface with ANSI color support
-- Real-time input validation with helpful error messages
-- Visual color band representations
-
-🎯 **Comprehensive Support**
-- 3, 4, and 5-band capacitor configurations
-- 5 capacitor types: J (Tantalum), K (Mica), L (Polyester/Polystyrene), M (Electrolytic 4-band), N (Electrolytic 3-band)
-- 12 standard color codes (Black through White, plus Gold and Silver)
-
-🧮 **Accurate Calculations**
-- IEC 60062 compliant calculations
-- Automatic unit scaling (pF → nF → µF → mF)
-- Dual tolerance modes: percentage (>10pF) and absolute (≤10pF)
-- Type-specific voltage rating lookup
-- Temperature coefficient display
-
-⚡ **User-Friendly**
-- Sequential band-by-band input with confirmation
-- Edit mode to correct individual bands
-- Review screen before calculation
-- Decode multiple capacitors in one session
+Automatic unit scaling (pF→nF→µF→mF for caps, Ω→kΩ→MΩ→GΩ for resistors), tolerance calculations, and component-specific parameters.
 
 ## Installation
 
-### From Source
+### Build from Source
 
 ```bash
-# Clone the repository
-git clone <repository-url>
+git clone https://github.com/JoNilsson/tropical-fish
 cd tropical-fish
-
-# Build the application
-go build -o tropical-fish
-
-# Run it
+go mod tidy
+CGO_ENABLED=0 go build -o tropical-fish
 ./tropical-fish
 ```
 
+Requires Go 1.21+
+
 ### Pre-built Binaries
 
-Download the latest release for your platform from the [Releases](releases) page:
-- Linux (x86_64, ARM64)
-- macOS (Intel, Apple Silicon)
-- Windows (x86_64)
+Available on [Releases](https://github.com/JoNilsson/tropical-fish/releases):
+- Linux x86_64, ARM64
+- macOS Intel, Apple Silicon
+- Windows x86_64
 
 ## Usage
 
-### Quick Start
-
-1. Launch the application:
-   ```bash
-   ./tropical-fish
-   ```
-
-2. Follow the on-screen prompts:
-   - Select capacitor type (J, K, L, M, or N)
-   - Select band count (3, 4, or 5)
-   - Enter each color band sequentially
-   - Review your input
-   - View the calculated results
-
-### Example Walkthrough
-
-Decoding a **27 nF mica capacitor** with 5 bands:
-
-```
-Step 1: Capacitor Type
-→ Enter: K (for Mica)
-
-Step 2: Band Count
-→ Enter: 5
-
-Step 3: Band Input
-→ Band 1 (First Digit): red
-→ Band 2 (Second Digit): violet
-→ Band 3 (Multiplier): orange
-→ Band 4 (Tolerance): brown
-→ Band 5 (Voltage): orange
-
-Result:
-  Capacitance: 27 nF (27,000 pF)
-  Tolerance: ±1% (26.73 nF ──► 27.27 nF)
-  Voltage: 400 V (Type K Mica)
-  Temperature Coefficient: -150 × 10⁻⁶ /°C
+Launch the application:
+```bash
+./tropical-fish
 ```
 
-## Capacitor Types
+Select component type (capacitor or resistor), enter band count and colors sequentially. Review and confirm before calculation.
 
-| Type | Description | Voltage Options |
+### Capacitor Example
+
+5-band mica capacitor (27 nF, 1% tolerance, 400V):
+- Type: K (Mica)
+- Bands: red, violet, orange, brown, orange
+- Result: 27 nF ±1% (26.73–27.27 nF), 400V
+
+### Resistor Example
+
+5-band resistor (4700 Ω, 1% tolerance):
+- Bands: yellow, violet, black, brown, brown
+- Result: 4.7 kΩ ±1% (4.653–4.747 kΩ)
+
+## Component Support
+
+### Capacitors
+
+| Type | Description | Voltage Ratings |
 |------|-------------|-----------------|
-| **J** | Dipped Tantalum | 3V, 4V, 6V, 10V, 15V, 20V, 25V, 35V, 50V |
-| **K** | Mica | 100V - 2000V (11 options) |
-| **L** | Polyester / Polystyrene | 100V, 250V, 400V, 630V |
-| **M** | Electrolytic (4-band) | 1.6V, 2.5V, 4V, 6.3V, 10V, 16V, 25V, 40V |
-| **N** | Electrolytic (3-band) | 3V, 6V, 6.3V, 10V, 15V, 20V, 25V, 35V |
+| J | Dipped Tantalum | 3V–50V |
+| K | Mica | 100V–2000V |
+| L | Polyester/Polystyrene | 100V–630V |
+| M | Electrolytic (4-band) | 1.6V–40V |
+| N | Electrolytic (3-band) | 3V–35V |
+
+### Resistors
+
+4-band: First digit, second digit, multiplier, tolerance
+5-band: First digit, second digit, third digit, multiplier, tolerance
+6-band: First digit, second digit, third digit, multiplier, tolerance, temperature coefficient
 
 ## Color Code Reference
 
@@ -172,54 +130,22 @@ Result:
 
 ## Keyboard Controls
 
-- **Enter** - Confirm input / Proceed to next step
-- **Backspace/Delete** - Delete last character
-- **C** - Correct/Edit a band (on review screen)
-- **D** - Decode another capacitor (on results screen)
-- **E** - Edit current capacitor (on results screen)
-- **Q** - Quit application
-- **Ctrl+C** - Quit immediately
+| Key | Function |
+|-----|----------|
+| Enter | Confirm / Next step |
+| Backspace | Delete character |
+| C | Correct band |
+| D | Decode another component |
+| E | Edit component |
+| Q | Quit |
+| Ctrl+C | Force quit |
 
-## Development
+## Building
 
-### Building from Source
-
-Requirements:
-- Go 1.21 or later
-
-```bash
-# Clone and enter directory
-git clone <repository-url>
-cd tropical-fish
-
-# Install dependencies
-go mod tidy
-
-# Build
-CGO_ENABLED=0 go build -o tropical-fish
-
-# Run tests
-go test -v
-```
-
-### Project Structure
-
-```
-tropical-fish/
-├── main.go           # TUI application and screen rendering
-├── colors.go         # Color code definitions and mappings
-├── types.go          # Capacitor type definitions
-├── calculator.go     # Calculation engine
-├── validator.go      # Input validation logic
-├── styles.go         # Lipgloss styling and visual themes
-├── calculator_test.go # Unit tests
-└── README.md         # This file
-```
-
-### Building Cross-Platform Binaries
+### Cross-Platform Binaries
 
 ```bash
-# Linux AMD64
+# Linux x86_64
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o tropical-fish-linux-amd64
 
 # Linux ARM64
@@ -232,94 +158,60 @@ GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -o tropical-fish-darwin-amd64
 GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o tropical-fish-darwin-arm64
 
 # Windows
-GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o tropical-fish-windows-amd64.exe
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o tropical-fish.exe
 ```
 
-## Testing
+### Testing
 
-The project includes comprehensive unit tests covering:
-- Capacitance calculations
-- Tolerance calculations (percentage and absolute)
-- Unit auto-scaling
-- Voltage rating lookups
-- Color parsing
-- Input validation
-
-Run tests:
 ```bash
 go test -v
 ```
 
-## Technical Details
+Tests cover calculations, tolerance logic, unit scaling, color parsing, and validation.
 
-### Calculation Formula
+## Calculations
 
-```
-Capacitance (pF) = (Band1 × 10 + Band2) × Multiplier
-```
+### Capacitors
 
-Example: Red (2) + Violet (7) + Orange (×1,000) = 27 × 1,000 = 27,000 pF = 27 nF
+Base value from first 2 bands × multiplier. Tolerance calculated as percentage (>10pF) or absolute pF (≤10pF) per IEC 60062.
 
-### Unit Auto-Scaling
+### Resistors
 
-The application automatically selects the most readable unit:
-- **pF** (picofarad): < 1,000 pF
-- **nF** (nanofarad): 1,000 pF - 999,999 pF
-- **µF** (microfarad): 1,000,000 pF - 999,999,999 pF
-- **mF** (millifarad): ≥ 1,000,000,000 pF
+Base value from first 2 or 3 bands × multiplier. 6-band types include temperature coefficient (ppm/°C). Tolerance specified as ±%.
 
-### Tolerance Logic
+Resistance scales to Ω, kΩ, MΩ, or GΩ based on value.
 
-- **Capacitance > 10 pF**: Percentage-based tolerance (±%)
-- **Capacitance ≤ 10 pF**: Absolute tolerance (±pF)
+## Resistor Tolerance
 
-This follows the IEC 60062 standard for precision capacitors.
+| Color | ±% |
+|-------|-----|
+| Brown | 1 |
+| Red | 2 |
+| Green | 0.5 |
+| Blue | 0.25 |
+| Violet | 0.1 |
+| Grey | 0.05 |
+| Gold | 5 |
+| Silver | 10 |
 
-## Standards Compliance
+## Resistor Temperature Coefficient (6-band)
 
-This application implements:
-- **IEC 60062** - Color coding for capacitors
-- Standard "Tropical Fish" 5-band capacitor format
-- Type-specific voltage rating tables (J, K, L, M, N)
+| Color | ppm/°C |
+|-------|--------|
+| Black | 250 |
+| Brown | 100 |
+| Red | 50 |
+| Orange | 15 |
+| Yellow | 25 |
+| Green | 20 |
+| Blue | 10 |
+| Violet | 5 |
+| Grey | 1 |
 
-## Troubleshooting
+## Standards
 
-### Colors Not Displaying Properly
-
-Ensure your terminal supports:
-- ANSI escape codes
-- 24-bit true color (or at least 256 colors)
-
-Recommended terminals:
-- **Linux**: GNOME Terminal, Konsole, Alacritty, kitty
-- **macOS**: iTerm2, Terminal.app (macOS 10.14+), Alacritty
-- **Windows**: Windows Terminal, ConEmu, Alacritty
-
-### Invalid Color Error
-
-The application accepts color names case-insensitively:
-- ✅ `red`, `Red`, `RED` (all valid)
-- ✅ `grey` or `gray` (both spellings accepted)
-- ❌ `rd`, `r` (invalid - use full color name)
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues or pull requests.
+Implements IEC 60062 color coding for both capacitors and resistors.
 
 ## License
 
-This project is licensed under the MIT License.
-
-## Acknowledgments
-
-- Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea) by Charm
-- Styled with [Lipgloss](https://github.com/charmbracelet/lipgloss)
-- Based on IEC 60062 standard specifications
-
-## Support
-
-For bugs, questions, or feature requests, please open an issue on GitHub.
-
----
-
-**Made with ❤️ for electronics enthusiasts and engineers**
+WTFPL (Do What The F*** You Want To Public License)
